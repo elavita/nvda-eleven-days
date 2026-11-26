@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>N-V-D-A · 字幕同步校对</title>
 <style>
   :root { --gold:#ffd54a; --dim:#5f5f6a; }
@@ -11,7 +11,10 @@
   body {
     background:#0a0a0d; color:#ddd; height:100vh; display:flex; flex-direction:column;
     overflow:hidden; font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
   }
+  @supports (height: 100dvh) { body { height:100dvh; } }
 
   header {
     flex:0 0 auto; padding:13px 22px; display:flex; justify-content:space-between;
@@ -28,6 +31,7 @@
   .line {
     padding:8px 24px; cursor:pointer; border-left:3px solid transparent;
     transition:background .18s, border-color .18s;
+    touch-action:manipulation; -webkit-user-select:none; user-select:none;
   }
   .line:hover { background:#12121a; }
   .en { font-size:13.5px; color:var(--dim); margin-bottom:2px; transition:color .18s; }
@@ -58,14 +62,53 @@
   input[type=range] { width:120px; accent-color:var(--gold); }
   #offv { min-width:52px; font-variant-numeric:tabular-nums; }
   #rowinfo { font-size:12px; color:#5f5f6a; font-variant-numeric:tabular-nums; margin-left:auto; }
-  #buf { font-size:12px; color:#c08a33; min-width:74px; }
+  #rowinfo.buffering { color:#c08a33; }
 
   body.no-en .en { display:none; }
   body.no-en .zh { font-size:23px; }
 
   #hint { position:fixed; left:50%; top:26%; transform:translate(-50%,-50%); text-align:center;
-    color:#4e4e58; font-size:13px; line-height:1.9; pointer-events:none; transition:opacity .4s; }
+    color:#6c6c78; font-size:13px; line-height:1.9; pointer-events:none; transition:opacity .4s;
+    background:rgba(10,10,13,.94); padding:12px 18px; border-radius:12px; border:1px solid #1e1e26; }
   #hint b { color:#b9b9c4; font-weight:500; }
+
+  /* ---------- 手机 ---------- */
+  @media (max-width: 640px) {
+    header { padding:10px 14px; }
+    header h1 { font-size:13px; letter-spacing:.2px; }
+    header h1 span { display:none; }
+    #clock { font-size:11px; }
+
+    #wrap { padding:34vh 0 38vh; }
+    .line { padding:6px 14px; }
+    .en { font-size:11px; margin-bottom:1px; }
+    .zh { font-size:17px; line-height:1.45; }
+    body.no-en .zh { font-size:19px; }
+    .line.tight .en::after { font-size:10.5px; }
+    #hint { top:16%; font-size:11.5px; line-height:1.8; padding:9px 12px; border-radius:10px; }
+
+    footer {
+      display:grid;
+      grid-template-columns:42px 1fr auto;
+      grid-template-areas:
+        "play bar lang"
+        "off  off info";
+      gap:8px 10px;
+      padding:9px 13px calc(9px + env(safe-area-inset-bottom, 0px));
+    }
+    #play { grid-area:play; width:42px; padding:6px 0; font-size:14px; border-radius:10px; }
+    .bar  { grid-area:bar; height:10px; min-width:0; }
+    #lang { grid-area:lang; padding:6px 10px; font-size:12px; border-radius:10px; white-space:nowrap; }
+    .ctl  { grid-area:off; font-size:11px; gap:4px; white-space:nowrap; }
+    input[type=range] { width:76px; }
+    #offv { min-width:38px; font-size:10.5px; }
+    #rowinfo { grid-area:info; justify-self:end; margin-left:0; font-size:10.5px; white-space:nowrap; }
+  }
+
+  /* 横屏手机：压扁留白，别让歌词被挤没 */
+  @media (max-height: 430px) and (orientation: landscape) {
+    #wrap { padding:30vh 0 34vh; }
+  }
 </style>
 </head>
 <body>
@@ -87,7 +130,6 @@
     <span id="offv">0 ms</span>
   </label>
   <button id="lang">只看中文</button>
-  <div id="buf"></div>
   <div id="rowinfo">—</div>
 </footer>
 
@@ -170,6 +212,7 @@ const playBtn = document.getElementById('play');
 let offset = 0;          // ms，正数 = 字幕整体延后
 let cur = -99;
 let suppressUntil = 0;
+let lineInfo = '—';
 
 const rows = lines.map((L, i) => {
   const d = document.createElement('div');
@@ -200,7 +243,8 @@ function glideTo(y) {
 
 function setActive(i) {
   rows.forEach((r, k) => r.classList.toggle('active', k === i));
-  rowinfo.textContent = i >= 0 ? `第 ${i+1} 行 · ${lines[i].ts}` : '—';
+  lineInfo = i >= 0 ? `第 ${i+1} 行 · ${lines[i].ts}` : '—';
+  rowinfo.textContent = lineInfo;
   if (i >= 0 && Date.now() > suppressUntil) {
     const r = rows[i];
     const wr = wrap.getBoundingClientRect();
@@ -232,7 +276,10 @@ wrap.addEventListener('click', e => {
 });
 
 ['wheel','touchstart'].forEach(ev =>
-  wrap.addEventListener(ev, () => { suppressUntil = Date.now() + 1600; }, { passive: true }));
+  wrap.addEventListener(ev, () => {
+    suppressUntil = Date.now() + 1600;
+    if (hint.style.opacity !== '0') hint.style.opacity = 0;
+  }, { passive: true }));
 
 offEl.addEventListener('input', () => {
   offset = +offEl.value;
@@ -269,7 +316,7 @@ const LOCAL  = 'audio.mp3';
 const SOURCES = location.protocol === 'file:' ? [LOCAL, MIRROR] : [MIRROR, LOCAL];
 let srcIdx = 0;
 
-const bufEl = document.getElementById('buf');
+let buffering = false;
 
 function loadSource() {
   audio.src = SOURCES[srcIdx];
@@ -295,14 +342,17 @@ function bufferedEnd() {
   return b.length ? b.end(b.length - 1) : 0;
 }
 
-audio.addEventListener('waiting', () => bufEl.classList.add('on'));
-audio.addEventListener('playing', () => bufEl.classList.remove('on'));
-audio.addEventListener('canplay', () => bufEl.classList.remove('on'));
+audio.addEventListener('waiting', () => { buffering = true; rowinfo.classList.add('buffering'); });
+audio.addEventListener('playing', () => { buffering = false; rowinfo.classList.remove('buffering'); });
+audio.addEventListener('canplay', () => { buffering = false; rowinfo.classList.remove('buffering'); });
 
 setInterval(() => {
-  if (!bufEl.classList.contains('on')) { if (bufEl.textContent) bufEl.textContent = ''; return; }
-  const pct = audio.duration ? Math.min(100, bufferedEnd() / audio.duration * 100) : 0;
-  bufEl.textContent = '缓冲 ' + pct.toFixed(0) + '%';
+  if (buffering) {
+    const pct = audio.duration ? Math.min(100, bufferedEnd() / audio.duration * 100) : 0;
+    rowinfo.textContent = '缓冲 ' + pct.toFixed(0) + '%';
+  } else if (rowinfo.textContent !== lineInfo) {
+    rowinfo.textContent = lineInfo;
+  }
 }, 300);
 
 loadSource();
