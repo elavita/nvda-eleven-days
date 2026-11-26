@@ -71,6 +71,7 @@
     color:#6c6c78; font-size:13px; line-height:1.9; pointer-events:none; transition:opacity .4s;
     background:rgba(10,10,13,.94); padding:12px 18px; border-radius:12px; border:1px solid #1e1e26; }
   #hint b { color:#b9b9c4; font-weight:500; }
+  #hint .m { display:none; }
 
   /* ---------- 手机 ---------- */
   @media (max-width: 640px) {
@@ -86,6 +87,8 @@
     body.no-en .zh { font-size:19px; }
     .line.tight .en::after { font-size:10.5px; }
     #hint { top:16%; font-size:11.5px; line-height:1.8; padding:9px 12px; border-radius:10px; }
+    #hint .d { display:none; }
+    #hint .m { display:inline; }
 
     footer {
       display:grid;
@@ -120,7 +123,7 @@
 
 <div id="wrap"></div>
 
-<div id="hint">按 <b>空格</b> 播放 · 点任意一行跳到那一句<br>听声音和字幕是不是同时到</div>
+<div id="hint"><span class="d">按 <b>空格</b> 播放 · 点任意一行跳到那一句</span><span class="m">点 <b>▶</b> 播放 · 点任意一行跳到那一句</span><br>听声音和字幕是不是同时到</div>
 
 <footer>
   <button id="play">▶</button>
