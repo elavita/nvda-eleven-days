@@ -58,6 +58,7 @@
   input[type=range] { width:120px; accent-color:var(--gold); }
   #offv { min-width:52px; font-variant-numeric:tabular-nums; }
   #rowinfo { font-size:12px; color:#5f5f6a; font-variant-numeric:tabular-nums; margin-left:auto; }
+  #buf { font-size:12px; color:#c08a33; min-width:74px; }
 
   body.no-en .en { display:none; }
   body.no-en .zh { font-size:23px; }
@@ -86,10 +87,11 @@
     <span id="offv">0 ms</span>
   </label>
   <button id="lang">只看中文</button>
+  <div id="buf"></div>
   <div id="rowinfo">—</div>
 </footer>
 
-<audio id="audio" src="audio.mp3" preload="metadata"></audio>
+<audio id="audio" preload="auto"></audio>
 
 <script>
 const RAW = [
@@ -261,10 +263,49 @@ document.addEventListener('keydown', e => {
   if (e.code === 'ArrowLeft')  { audio.currentTime = Math.max(audio.currentTime - 3, 0); cur = -99; }
 });
 
+// —— 音源：GitHub Pages 在国内很慢，优先走镜像，失败自动回退 ——
+const MIRROR = 'https://ghfast.top/https://raw.githubusercontent.com/elavita/nvda-eleven-days/main/audio.mp3?v=3';
+const LOCAL  = 'audio.mp3';
+const SOURCES = location.protocol === 'file:' ? [LOCAL, MIRROR] : [MIRROR, LOCAL];
+let srcIdx = 0;
+
+const bufEl = document.getElementById('buf');
+
+function loadSource() {
+  audio.src = SOURCES[srcIdx];
+  audio.load();
+  cur = -99;
+}
+
 audio.addEventListener('error', () => {
-  hint.innerHTML = '音频没加载到<br><b>请确认 audio.mp3 和这个网页在同一个文件夹里</b>';
-  hint.style.opacity = 1;
+  if (srcIdx < SOURCES.length - 1) {
+    srcIdx++;
+    loadSource();
+  } else {
+    hint.innerHTML = '音频没加载到<br><b>请检查网络，或把 audio.mp3 放到本文件同一目录</b>';
+    hint.style.opacity = 1;
+  }
 });
+
+function bufferedEnd() {
+  const b = audio.buffered;
+  for (let i = 0; i < b.length; i++) {
+    if (b.start(i) <= audio.currentTime + 0.4 && b.end(i) >= audio.currentTime) return b.end(i);
+  }
+  return b.length ? b.end(b.length - 1) : 0;
+}
+
+audio.addEventListener('waiting', () => bufEl.classList.add('on'));
+audio.addEventListener('playing', () => bufEl.classList.remove('on'));
+audio.addEventListener('canplay', () => bufEl.classList.remove('on'));
+
+setInterval(() => {
+  if (!bufEl.classList.contains('on')) { if (bufEl.textContent) bufEl.textContent = ''; return; }
+  const pct = audio.duration ? Math.min(100, bufferedEnd() / audio.duration * 100) : 0;
+  bufEl.textContent = '缓冲 ' + pct.toFixed(0) + '%';
+}, 300);
+
+loadSource();
 
 requestAnimationFrame(loop);
 
