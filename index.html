@@ -33,7 +33,7 @@
     display:flex; flex-direction:column; justify-content:center;
   }
   .frame { position:relative; width:100%; max-width:1120px; margin:0 auto; background:#000; border-radius:10px; overflow:hidden; }
-  .poster { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; transition:opacity .4s; z-index:2; }
+  .poster { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .4s; z-index:2; }
   .frame.live .poster { opacity:0; }
   video { width:100%; height:auto; aspect-ratio:16/9; display:block; object-fit:contain; background:#000; outline:none; }
 
@@ -139,6 +139,20 @@ function fmt(s) {
   s = Math.max(0, s | 0);
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
+
+// 视频一旦有画面就淡出海报，否则海报会一直盖在视频上
+const frame = document.querySelector('.frame');
+function goLive() { frame.classList.add('live'); }
+v.addEventListener('loadeddata', goLive);
+v.addEventListener('playing', goLive);
+v.addEventListener('play', goLive);
+v.addEventListener('seeked', goLive);
+
+// 点海报任意位置开始播放
+frame.addEventListener('click', (e) => {
+  if (e.target === v) return;
+  v.play();
+});
 
 v.addEventListener('timeupdate', tick);
 v.addEventListener('seeked', tick);
