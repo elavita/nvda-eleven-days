@@ -81,7 +81,12 @@
   <section class="stage">
     <div class="frame">
       <img class="poster" src="poster.jpg" alt="">
-      <video id="v" src="mv.mp4" poster="poster.jpg" controls playsinline preload="metadata"></video>
+      <video id="v" poster="poster.jpg" controls playsinline preload="metadata">
+        <!-- 按实测速度排序：国内直连 GitHub 只有几 KB/s，优先走加速源 -->
+        <source src="https://gh-proxy.com/https://raw.githubusercontent.com/elavita/nvda-eleven-days/main/mv.mp4" type="video/mp4">
+        <source src="https://ghfast.top/https://raw.githubusercontent.com/elavita/nvda-eleven-days/main/mv.mp4" type="video/mp4">
+        <source src="mv.mp4" type="video/mp4">
+      </video>
     </div>
   </section>
 
