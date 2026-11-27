@@ -3,370 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>N-V-D-A · 字幕同步校对</title>
+<title>N-V-D-A · Eleven Days</title>
 <style>
-  :root { --gold:#ffd54a; --dim:#5f5f6a; }
+  :root { --gold:#ffd54a; --bg:#08080b; --line:#1b1b22; }
   * { box-sizing:border-box; }
-  html,body { margin:0; padding:0; height:100%; }
+  html,body { margin:0; padding:0; }
   body {
-    background:#0a0a0d; color:#ddd; height:100vh; display:flex; flex-direction:column;
-    overflow:hidden; font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-    -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
-    overscroll-behavior:none;
+    background:var(--bg); color:#d6d6de;
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-text-size-adjust:100%; overscroll-behavior:none;
+    min-height:100dvh; display:flex; flex-direction:column;
   }
-  @supports (height: 100dvh) { body { height:100dvh; } }
 
   header {
-    flex:0 0 auto; padding:13px 22px; display:flex; justify-content:space-between;
-    align-items:baseline; border-bottom:1px solid #1c1c22; background:#08080b;
+    flex:0 0 auto; padding:12px 20px; display:flex; align-items:baseline;
+    justify-content:space-between; border-bottom:1px solid var(--line);
   }
-  header h1 { font-size:15px; font-weight:600; margin:0; letter-spacing:.4px; }
-  header h1 span { color:#4a4a54; font-weight:400; margin-left:8px; }
-  #clock { font-size:13px; color:#66666f; font-variant-numeric:tabular-nums; }
+  header h1 { margin:0; font-size:15px; font-weight:600; letter-spacing:.5px; }
+  header h1 em { color:#54545f; font-style:normal; font-weight:400; margin-left:8px; }
+  header .meta { font-size:12px; color:#4e4e58; font-variant-numeric:tabular-nums; }
 
-  #wrap { flex:1 1 auto; min-height:0; overflow-y:auto; position:relative; padding:44vh 0 46vh; }
-  #wrap::-webkit-scrollbar { width:8px; }
-  #wrap::-webkit-scrollbar-thumb { background:#24242c; border-radius:4px; }
+  main { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0,62%) minmax(0,38%); }
 
-  .line {
-    padding:8px 24px; cursor:pointer; border-left:3px solid transparent;
-    transition:background .18s, border-color .18s;
-    touch-action:manipulation; -webkit-user-select:none; user-select:none;
+  /* 左：视频 */
+  .stage {
+    display:flex; align-items:center; justify-content:center;
+    padding:18px; background:#000; border-right:1px solid var(--line);
   }
-  .line:hover { background:#12121a; }
-  .en { font-size:13.5px; color:var(--dim); margin-bottom:2px; transition:color .18s; }
-  .zh { font-size:21px; color:#c6c6ce; line-height:1.38; transition:color .18s; }
+  .frame { width:100%; max-width:1120px; }
+  video { width:100%; height:auto; display:block; background:#000; border-radius:10px; outline:none; }
 
-  .line.active { border-left-color:var(--gold); background:linear-gradient(90deg,rgba(255,213,74,.075),transparent 70%); }
-  .line.active .zh { color:var(--gold); }
-  .line.active .en { color:#9c916a; }
-
-  .line.tight { border-left-color:#7d4b16; }
-  .line.tight .en::after { content:"  · 距上一行 " attr(data-gap) "s"; color:#b06f38; font-size:12px; }
-
-  footer {
-    flex:0 0 auto; padding:11px 22px; border-top:1px solid #1c1c22; background:#08080b;
-    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  /* 右：字幕 */
+  .lyrics { position:relative; min-height:0; overflow:hidden; }
+  .list {
+    height:100%; overflow-y:auto; padding:38vh 0 40vh;
+    scrollbar-width:thin; scroll-behavior:smooth;
   }
-  button {
-    background:#17171e; color:#ddd; border:1px solid #26262f; border-radius:8px;
-    padding:7px 13px; font-size:14px; cursor:pointer; font-family:inherit;
-  }
-  button:hover { background:#20202a; }
-  #play { width:46px; padding:7px 0; text-align:center; font-size:15px; }
+  .list::-webkit-scrollbar { width:6px; }
+  .list::-webkit-scrollbar-thumb { background:#26262e; border-radius:3px; }
 
-  .bar { flex:1 1 160px; min-width:120px; height:8px; background:#2b2b36; border-radius:4px; cursor:pointer; }
-  #fill { height:100%; width:0; background:var(--gold); border-radius:4px; }
+  .line { padding:9px 22px; border-left:3px solid transparent; transition:background .18s; }
+  .en { font-size:13px; color:#5d5d68; line-height:1.45; transition:color .18s; }
+  .zh { font-size:19px; color:#c2c2cc; line-height:1.4; margin-top:2px; transition:color .18s; }
 
-  .ctl { font-size:12px; color:#66666f; display:flex; align-items:center; gap:6px; }
-  input[type=range] { width:120px; accent-color:var(--gold); }
-  #offv { min-width:52px; font-variant-numeric:tabular-nums; }
-  #rowinfo { font-size:12px; color:#5f5f6a; font-variant-numeric:tabular-nums; margin-left:auto; }
-  #rowinfo.buffering { color:#c08a33; }
+  .line.on { border-left-color:var(--gold); background:linear-gradient(90deg,rgba(255,213,74,.08),transparent 72%); }
+  .line.on .zh { color:var(--gold); font-weight:600; }
+  .line.on .en { color:#a2946a; }
 
-  body.no-en .en { display:none; }
-  body.no-en .zh { font-size:23px; }
-
-  #hint { position:fixed; left:50%; top:26%; transform:translate(-50%,-50%); text-align:center;
-    color:#6c6c78; font-size:13px; line-height:1.9; pointer-events:none; transition:opacity .4s;
-    background:rgba(10,10,13,.94); padding:12px 18px; border-radius:12px; border:1px solid #1e1e26; }
-  #hint b { color:#b9b9c4; font-weight:500; }
-  #hint .m { display:none; }
-
-  /* ---------- 手机 ---------- */
-  @media (max-width: 640px) {
+  /* 手机竖屏：上下排列 */
+  @media (max-width: 860px), (orientation: portrait) and (max-width: 1024px) {
+    main { display:flex; flex-direction:column; }
+    .stage { padding:0; border-right:none; border-bottom:1px solid var(--line); flex:0 0 auto; }
+    .frame { max-width:none; }
+    video { border-radius:0; }
+    .lyrics { flex:1 1 auto; min-height:34vh; }
+    .list { padding:16px 0 30px; }
+    .line { padding:7px 16px; }
+    .en { font-size:11.5px; }
+    .zh { font-size:16.5px; }
     header { padding:10px 14px; }
-    header h1 { font-size:13px; letter-spacing:.2px; }
-    header h1 span { display:none; }
-    #clock { font-size:11px; }
-
-    #wrap { padding:34vh 0 38vh; }
-    .line { padding:6px 14px; }
-    .en { font-size:11px; margin-bottom:1px; }
-    .zh { font-size:17px; line-height:1.45; }
-    body.no-en .zh { font-size:19px; }
-    .line.tight .en::after { font-size:10.5px; }
-    #hint { top:16%; font-size:11.5px; line-height:1.8; padding:9px 12px; border-radius:10px; }
-    #hint .d { display:none; }
-    #hint .m { display:inline; }
-
-    footer {
-      display:grid;
-      grid-template-columns:42px 1fr auto;
-      grid-template-areas:
-        "play bar lang"
-        "off  off info";
-      gap:8px 10px;
-      padding:9px 13px calc(9px + env(safe-area-inset-bottom, 0px));
-    }
-    #play { grid-area:play; width:42px; padding:6px 0; font-size:14px; border-radius:10px; }
-    .bar  { grid-area:bar; height:10px; min-width:0; }
-    #lang { grid-area:lang; padding:6px 10px; font-size:12px; border-radius:10px; white-space:nowrap; }
-    .ctl  { grid-area:off; font-size:11px; gap:4px; white-space:nowrap; }
-    input[type=range] { width:76px; }
-    #offv { min-width:38px; font-size:10.5px; }
-    #rowinfo { grid-area:info; justify-self:end; margin-left:0; font-size:10.5px; white-space:nowrap; }
-  }
-
-  /* 横屏手机：压扁留白，别让歌词被挤没 */
-  @media (max-height: 430px) and (orientation: landscape) {
-    #wrap { padding:30vh 0 34vh; }
+    header h1 { font-size:13px; }
+    header h1 em { display:none; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>N-V-D-A<span>字幕同步校对</span></h1>
-  <div id="clock">00:00.0 / --:--</div>
+  <h1>N-V-D-A<em>Eleven Days</em></h1>
+  <div class="meta"><span id="pos">0:00</span> / 3:26</div>
 </header>
 
-<div id="wrap"></div>
+<main>
+  <section class="stage">
+    <div class="frame">
+      <video id="v" src="mv.mp4" controls playsinline preload="metadata"></video>
+    </div>
+  </section>
 
-<div id="hint"><span class="d">按 <b>空格</b> 播放 · 点任意一行跳到那一句</span><span class="m">点 <b>▶</b> 播放 · 点任意一行跳到那一句</span><br>听声音和字幕是不是同时到</div>
-
-<footer>
-  <button id="play">▶</button>
-  <div class="bar" id="bar"><div id="fill"></div></div>
-  <label class="ctl">字幕偏移
-    <input type="range" id="off" min="-2000" max="2000" step="10" value="0">
-    <span id="offv">0 ms</span>
-  </label>
-  <button id="lang">只看中文</button>
-  <div id="rowinfo">—</div>
-</footer>
-
-<audio id="audio" preload="auto"></audio>
+  <section class="lyrics">
+    <div class="list" id="list"></div>
+  </section>
+</main>
 
 <script>
-const RAW = [
-["00:15.09","Huang man there's no need to feel down","黄老板，不必感到沮丧"],
-["00:18.25","I said Huang man lose the leather and go","我说，黄老板，皮衣脱了，走吧"],
-["00:22.01","I said Huang man your conduct broke the code","我说，黄老板，你的品行违了《行为准则》"],
-["00:25.73","There's no need to be unhappy","没必要闷闷不乐"],
-["00:30.21","Huang man there's a place you can go","黄老板，有个地方你可以去"],
-["00:33.33","I said Huang man though you're not short on dough","我说，黄老板，虽然你根本不缺钱"],
-["00:37.13","You can stay there and I'm sure you will find","你可以待在那里，我保证你会发现"],
-["00:40.85","Fingers point at you in no time","你很快就会被千夫所指"],
-["00:43.79","It's hell to be out of the N-V-D-A","不在英伟达，日子就是地狱"],
-["00:47.53","It's hell to be out of the N-V-D-A","不在英伟达，日子就是地狱"],
-["00:52.77","The ticker is down thirty percent enjoy","股价跌了三成，请慢用"],
-["00:56.33","You can't hang out with all the boys","你不能和兄弟们一起玩了"],
-["00:58.93","It's hell to be out of the N-V-D-A","不在英伟达，日子就是地狱"],
-["01:02.73","It's hell to be out of the N-V-D-A","不在英伟达，日子就是地狱"],
-["01:07.73","You can't get yourself cleared you can't have a good meal","你洗不清罪责，你也吃不上好饭"],
-["01:11.49","You can't do whatever you feel","你想干什么都不行"],
-["01:15.82","Huang man are you listening to me","黄老板，你在听我说吗？"],
-["01:18.81","I said Huang man one call and you're on board","我说，黄老板，我一个电话你就归队"],
-["01:22.61","I said Huang man you're the whole treasury","我说，黄老板，你一个人就是整座国库"],
-["01:26.41","But you've got to know this one thing","但你得明白一件事"],
-["01:30.85","No board does it all by itself","没有哪个董事会能单靠自己"],
-["01:33.93","I said board men put your pride on the shelf","我说，董事们，把你们的骄傲放一放"],
-["01:37.73","And just go there to the N-V-D-A","就去那个地方，去 N-V-D-A"],
-["01:41.45","I'm sure they'll do just what I say","我保证他们照我说的做"],
-["01:44.39","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["01:48.09","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["01:53.33","The ticker's up thirty one percent enjoy","股价涨了三十一个点，请慢用"],
-["01:56.85","You can hang out with all the boys","你可以和兄弟们一起玩了"],
-["01:59.41","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["02:03.17","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["02:08.13","You can get yourself cleared you can have a good meal","你洗清了罪责，你吃得上好饭"],
-["02:11.93","You can do whatever you feel","你想干什么都行"],
-["02:16.09","Huang man they all say they've been in your shoes","黄老板，他们都说自己也曾坐在你那个位置上"],
-["02:19.21","I said they never were I had the blues","我说，他们从来没有——我当年才是真落魄"],
-["02:23.01","I felt no one cared if I was alive","我觉得没人在乎我是不是还活着"],
-["02:26.73","I felt both parties were so jive","我觉得两党都是一个样，全是演的"],
-["02:27.83","That's when the White House called on me","就在那时，白宫给我打来了电话"],
-["02:30.45","And said Huang man take a walk up the street","说，黄老板，沿街走上去"],
-["02:34.25","There's a place there called the N-V-D-A","那里有个地方，叫 N-V-D-A"],
-["02:38.01","They can start you back on your way","他们能让你重新上路"],
-["02:40.83","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["02:44.57","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["02:49.81","The ticker's up thirty one percent enjoy","股价涨了三十一个点，请慢用"],
-["02:53.33","You can hang out with all the boys","你可以和兄弟们一起玩了"],
-["02:55.93","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["02:59.85","It's fun to stay at the N-V-D-A","待在英伟达，日子多快乐"],
-["03:04.65","You can get yourself cleared you can have a good meal","你洗清了罪责，你吃得上好饭"],
-["03:08.69","As long as the ticker goes up","只要股价还涨"],
-["03:12.61","Huang man Huang man there's no need to feel down","黄老板，黄老板，不必感到沮丧"],
-["03:16.33","Huang man Huang man pick it up off the ground","黄老板，黄老板，把皮衣从地上捡起来"],
-["03:20.17","N-V-D-A and just go to the N-V-D-A","N-V-D-A，就去 N-V-D-A！"]
-];
+const LYR = [{"t": 15.56, "en": "Huang man there's no need to feel down", "zh": "黄老板，不必感到沮丧"}, {"t": 18.37, "en": "I said Huang man lose the leather and go", "zh": "我说，黄老板，皮衣脱了，走吧"}, {"t": 22.13, "en": "I said Huang man your conduct broke the code", "zh": "我说，黄老板，你的品行违了《行为准则》"}, {"t": 25.85, "en": "There's no need to be unhappy", "zh": "没必要闷闷不乐"}, {"t": 30.33, "en": "Huang man there's a place you can go", "zh": "黄老板，有个地方你可以去"}, {"t": 33.37, "en": "I said Huang man though you're not short on dough", "zh": "我说，黄老板，虽然你根本不缺钱"}, {"t": 37.13, "en": "You can stay there and I'm sure you will find", "zh": "你可以待在那里，我保证你会发现"}, {"t": 40.85, "en": "Fingers point at you in no time", "zh": "你很快就会被千夫所指"}, {"t": 43.8, "en": "It's hell to be out of the N-V-D-A", "zh": "不在英伟达，日子就是地狱"}, {"t": 47.49, "en": "It's hell to be out of the N-V-D-A", "zh": "不在英伟达，日子就是地狱"}, {"t": 52.73, "en": "The ticker is down thirty percent enjoy", "zh": "股价跌了三成，请慢用"}, {"t": 56.25, "en": "You can't hang out with all the boys", "zh": "你不能和兄弟们一起玩了"}, {"t": 58.89, "en": "It's hell to be out of the N-V-D-A", "zh": "不在英伟达，日子就是地狱"}, {"t": 62.65, "en": "It's hell to be out of the N-V-D-A", "zh": "不在英伟达，日子就是地狱"}, {"t": 67.61, "en": "You can't get yourself cleared you can't have a good meal", "zh": "你洗不清罪责，你也吃不上好饭"}, {"t": 71.37, "en": "You can't do whatever you feel", "zh": "你想干什么都不行"}, {"t": 75.92, "en": "Huang man are you listening to me", "zh": "黄老板，你在听我说吗？"}, {"t": 78.69, "en": "I said Huang man one call and you're on board", "zh": "我说，黄老板，我一个电话你就归队"}, {"t": 82.45, "en": "I said Huang man you're the whole treasury", "zh": "我说，黄老板，你一个人就是整座国库"}, {"t": 86.25, "en": "But you've got to know this one thing", "zh": "但你得明白一件事"}, {"t": 90.69, "en": "No board does it all by itself", "zh": "没有哪个董事会能单靠自己"}, {"t": 93.77, "en": "I said board men put your pride on the shelf", "zh": "我说，董事们，把你们的骄傲放一放"}, {"t": 97.57, "en": "And just go there to the N-V-D-A", "zh": "就去那个地方，去 N-V-D-A"}, {"t": 101.29, "en": "I'm sure they'll do just what I say", "zh": "我保证他们照我说的做"}, {"t": 104.36, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 108.01, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 113.25, "en": "The ticker's up thirty-one percent enjoy", "zh": "股价涨了三十一个点，请慢用"}, {"t": 116.81, "en": "You can hang out with all the boys", "zh": "你可以和兄弟们一起玩了"}, {"t": 119.37, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 123.13, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 128.09, "en": "You can get yourself cleared you can have a good meal", "zh": "你洗清了罪责，你吃得上好饭"}, {"t": 131.85, "en": "You can do whatever you feel", "zh": "你想干什么都行"}, {"t": 136.4, "en": "Huang man they all say they've been in your shoes", "zh": "黄老板，他们都说自己也曾坐在你那个位置上"}, {"t": 139.17, "en": "I said they never were I had the blues", "zh": "我说，他们从来没有——我当年才是真落魄"}, {"t": 142.93, "en": "I felt no one cared if I was alive", "zh": "我觉得没人在乎我是不是还活着"}, {"t": 146.69, "en": "I felt both parties were so jive", "zh": "我觉得两党都是一个样，全是演的"}, {"t": 151.17, "en": "That's when the White House called on me", "zh": "就在那时，白宫给我打来了电话"}, {"t": 154.25, "en": "And said Huang man take a walk up the street", "zh": "说，黄老板，沿街走上去"}, {"t": 158.01, "en": "There's a place there called the N-V-D-A", "zh": "那里有个地方，叫 N-V-D-A"}, {"t": 161.77, "en": "They can start you back on your way", "zh": "他们能让你重新上路"}, {"t": 164.96, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 168.37, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 173.61, "en": "The ticker's up thirty-one percent enjoy", "zh": "股价涨了三十一个点，请慢用"}, {"t": 177.13, "en": "You can hang out with all the boys", "zh": "你可以和兄弟们一起玩了"}, {"t": 179.85, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 183.45, "en": "It's fun to stay at the N-V-D-A", "zh": "待在英伟达，日子多快乐"}, {"t": 188.41, "en": "You can get yourself cleared you can have a good meal", "zh": "你洗清了罪责，你吃得上好饭"}, {"t": 192.45, "en": "As long as the ticker goes up", "zh": "只要股价还涨"}, {"t": 196.72, "en": "Huang man Huang man there's no need to feel down", "zh": "黄老板，黄老板，不必感到沮丧"}, {"t": 200.41, "en": "Huang man Huang man pick it up off the ground", "zh": "黄老板，黄老板，把皮衣从地上捡起来"}, {"t": 203.97, "en": "N-V-D-A and just go to the N-V-D-A", "zh": "N-V-D-A，就去 N-V-D-A！"}];
 
-const toSec = s => { const p = s.split(':'); return (+p[0]) * 60 + parseFloat(p[1]); };
-const fmt = s => {
-  if (!isFinite(s)) return '--:--';
-  const m = Math.floor(s / 60), sec = s - m * 60;
-  return String(m).padStart(2,'0') + ':' + (sec < 10 ? '0' : '') + sec.toFixed(1);
-};
+const list = document.getElementById('list');
+const v = document.getElementById('v');
+const pos = document.getElementById('pos');
 
-const lines = RAW.map(([ts,en,zh]) => ({ ts, t: toSec(ts), en, zh }));
-const wrap  = document.getElementById('wrap');
-const audio = document.getElementById('audio');
-const hint  = document.getElementById('hint');
-const clock = document.getElementById('clock');
-const fill  = document.getElementById('fill');
-const bar   = document.getElementById('bar');
-const offEl = document.getElementById('off');
-const offv  = document.getElementById('offv');
-const rowinfo = document.getElementById('rowinfo');
-const playBtn = document.getElementById('play');
-
-let offset = 0;          // ms，正数 = 字幕整体延后
-let cur = -99;
-let suppressUntil = 0;
-let lineInfo = '—';
-
-const rows = lines.map((L, i) => {
+LYR.forEach((l, i) => {
   const d = document.createElement('div');
   d.className = 'line';
   d.dataset.i = i;
-
   const en = document.createElement('div');
   en.className = 'en';
-  en.textContent = L.en;
-
+  en.textContent = l.en;
   const zh = document.createElement('div');
   zh.className = 'zh';
-  zh.textContent = L.zh;
-
-  if (i > 0) {
-    const gap = +(L.t - lines[i-1].t).toFixed(2);
-    if (gap < 2.2) { d.classList.add('tight'); en.dataset.gap = gap; }
-  }
-
-  d.appendChild(en); d.appendChild(zh);
-  wrap.appendChild(d);
-  return d;
+  zh.textContent = l.zh || '';
+  d.appendChild(en);
+  d.appendChild(zh);
+  d.addEventListener('click', () => { v.currentTime = l.t; v.play(); });
+  list.appendChild(d);
 });
 
-function glideTo(y) {
-  wrap.scrollTop = Math.max(0, Math.min(y, wrap.scrollHeight - wrap.clientHeight));
-}
+const nodes = [...list.children];
+let cur = -1;
 
-function setActive(i) {
-  rows.forEach((r, k) => r.classList.toggle('active', k === i));
-  lineInfo = i >= 0 ? `第 ${i+1} 行 · ${lines[i].ts}` : '—';
-  rowinfo.textContent = lineInfo;
-  if (i >= 0 && Date.now() > suppressUntil) {
-    const r = rows[i];
-    const wr = wrap.getBoundingClientRect();
-    const rr = r.getBoundingClientRect();
-    const y = wrap.scrollTop + (rr.top - wr.top) - (wrap.clientHeight - rr.height) / 2;
-    glideTo(Math.max(0, Math.min(y, wrap.scrollHeight - wrap.clientHeight)));
-  }
-}
-
-function loop() {
-  const t = audio.currentTime - offset / 1000;
+function tick() {
+  const t = v.currentTime;
+  pos.textContent = fmt(t);
   let idx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (t >= lines[i].t - 0.02) idx = i; else break;
+  for (let i = 0; i < LYR.length; i++) {
+    if (t + 0.08 >= LYR[i].t) idx = i; else break;
   }
-  if (idx !== cur) { setActive(idx); cur = idx; }
-  fill.style.width = (audio.duration ? (audio.currentTime / audio.duration * 100) : 0) + '%';
-  clock.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
-  if (audio.currentTime > 0.4 && hint.style.opacity !== '0') hint.style.opacity = 0;
-  requestAnimationFrame(loop);
+  if (idx !== cur) {
+    if (cur >= 0 && nodes[cur]) nodes[cur].classList.remove('on');
+    if (idx >= 0 && nodes[idx]) {
+      nodes[idx].classList.add('on');
+      const el = nodes[idx];
+      const target = el.offsetTop - list.clientHeight * 0.42 + el.offsetHeight * 0.5;
+      list.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    }
+    cur = idx;
+  }
 }
 
-wrap.addEventListener('click', e => {
-  const r = e.target.closest('.line');
-  if (!r) return;
-  audio.currentTime = lines[+r.dataset.i].t - offset / 1000 + 0.02;
-  cur = -99;
-  if (audio.paused) audio.play();
-});
-
-['wheel','touchstart'].forEach(ev =>
-  wrap.addEventListener(ev, () => {
-    suppressUntil = Date.now() + 1600;
-    if (hint.style.opacity !== '0') hint.style.opacity = 0;
-  }, { passive: true }));
-
-offEl.addEventListener('input', () => {
-  offset = +offEl.value;
-  offv.textContent = (offset > 0 ? '+' : '') + offset + ' ms';
-  cur = -99;
-});
-
-playBtn.addEventListener('click', () => {
-  if (audio.paused) audio.play(); else audio.pause();
-});
-
-audio.addEventListener('play',  () => { playBtn.textContent = '❚❚'; hint.style.opacity = 0; });
-audio.addEventListener('pause', () => { playBtn.textContent = '▶'; });
-
-bar.addEventListener('click', e => {
-  const r = bar.getBoundingClientRect();
-  if (audio.duration) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration;
-});
-
-document.getElementById('lang').addEventListener('click', e => {
-  const on = document.body.classList.toggle('no-en');
-  e.target.textContent = on ? '看中英' : '只看中文';
-});
-
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); if (audio.paused) audio.play(); else audio.pause(); }
-  if (e.code === 'ArrowRight') { audio.currentTime = Math.min(audio.currentTime + 3, audio.duration || 0); cur = -99; }
-  if (e.code === 'ArrowLeft')  { audio.currentTime = Math.max(audio.currentTime - 3, 0); cur = -99; }
-});
-
-// —— 音源：GitHub Pages 在国内很慢，优先走镜像，失败自动回退 ——
-const MIRROR = 'https://ghfast.top/https://raw.githubusercontent.com/elavita/nvda-eleven-days/main/audio.mp3?v=3';
-const LOCAL  = 'audio.mp3';
-const SOURCES = location.protocol === 'file:' ? [LOCAL, MIRROR] : [MIRROR, LOCAL];
-let srcIdx = 0;
-
-let buffering = false;
-
-function loadSource() {
-  audio.src = SOURCES[srcIdx];
-  audio.load();
-  cur = -99;
+function fmt(s) {
+  s = Math.max(0, s | 0);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-audio.addEventListener('error', () => {
-  if (srcIdx < SOURCES.length - 1) {
-    srcIdx++;
-    loadSource();
-  } else {
-    hint.innerHTML = '音频没加载到<br><b>请检查网络，或把 audio.mp3 放到本文件同一目录</b>';
-    hint.style.opacity = 1;
-  }
+v.addEventListener('timeupdate', tick);
+v.addEventListener('seeked', tick);
+v.addEventListener('loadedmetadata', () => {
+  const d = v.duration;
+  document.querySelector('.meta').innerHTML =
+    '<span id="pos">0:00</span> / ' + fmt(d);
+  tick();
 });
-
-function bufferedEnd() {
-  const b = audio.buffered;
-  for (let i = 0; i < b.length; i++) {
-    if (b.start(i) <= audio.currentTime + 0.4 && b.end(i) >= audio.currentTime) return b.end(i);
-  }
-  return b.length ? b.end(b.length - 1) : 0;
-}
-
-audio.addEventListener('waiting', () => { buffering = true; rowinfo.classList.add('buffering'); });
-audio.addEventListener('playing', () => { buffering = false; rowinfo.classList.remove('buffering'); });
-audio.addEventListener('canplay', () => { buffering = false; rowinfo.classList.remove('buffering'); });
-
-setInterval(() => {
-  if (buffering) {
-    const pct = audio.duration ? Math.min(100, bufferedEnd() / audio.duration * 100) : 0;
-    rowinfo.textContent = '缓冲 ' + pct.toFixed(0) + '%';
-  } else if (rowinfo.textContent !== lineInfo) {
-    rowinfo.textContent = lineInfo;
-  }
-}, 300);
-
-loadSource();
-
-requestAnimationFrame(loop);
-
-// 支持 #t=秒数 直接跳到某一处，方便复查
-const hashT = location.hash.match(/t=([\d.]+)/);
-if (hashT) {
-  audio.addEventListener('loadedmetadata', () => { audio.currentTime = +hashT[1]; cur = -99; });
-}
+tick();
 </script>
 </body>
 </html>
